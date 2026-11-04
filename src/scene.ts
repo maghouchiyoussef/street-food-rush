@@ -211,27 +211,6 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   const coinsInJar = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.09, 0.07, 20), mat(0xf4c430, 0.3, { metalness: 0.8 }));
   coinsInJar.position.set(0, COUNTER_Y + 0.075, 2.0);
   cart.add(jar, coinsInJar);
-  const napkins = new THREE.Group();
-  const nbox = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.12), steel);
-  nbox.position.y = 0.07;
-  const paper = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.1), mat(0xffffff, 0.9));
-  paper.position.y = 0.16;
-  napkins.add(nbox, paper);
-  napkins.position.set(-0.55, COUNTER_Y + 0.04, 2.45);
-  cart.add(napkins);
-  const sign = new THREE.Group();
-  const slate = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.02), mat(0x2d3a32, 0.9));
-  slate.position.y = 0.16;
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.28, 0.015), mat(0x8a5a32, 0.8));
-  frame.position.set(0, 0.16, -0.008);
-  const dogIcon = bun();
-  dogIcon.position.set(0, 0.16, 0.02);
-  dogIcon.rotation.x = Math.PI / 2;
-  dogIcon.scale.setScalar(0.9);
-  sign.add(frame, slate, dogIcon);
-  sign.position.set(0.55, COUNTER_Y + 0.04, 2.45);
-  sign.rotation.x = -0.5;
-  cart.add(sign);
 
   // Striped awning edge at the top of the view (frames the screen)
   const awning = new THREE.Group();

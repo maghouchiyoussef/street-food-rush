@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Street Food Rush</string>
+    <string name="title_activity_main">Street Food Rush</string>
+    <string name="package_name">com.devfoxmy.streetfoodrush</string>
+    <string name="custom_url_scheme">com.devfoxmy.streetfoodrush</string>
+</resources>

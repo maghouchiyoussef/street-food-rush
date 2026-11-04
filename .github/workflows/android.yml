@@ -1,0 +1,72 @@
+name: Build Android
+on:
+  push:
+    branches: [main, 'claude/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: build
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install, typecheck and bundle the game
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+          npx cap sync android
+      - name: Build release bundle (unsigned) and debug APK
+        working-directory: android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon bundleRelease assembleDebug
+      - name: Sign release bundle (if the upload key secrets exist)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then echo "No signing secrets: AAB stays unsigned"; exit 0; fi
+          # نحذف أي فراغات أو أسطر زائدة قد تأتي مع اللصق
+          printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > "$RUNNER_TEMP/upload.jks" || { echo "::error::KEYSTORE_BASE64 غير صالح: الصق محتوى KEYSTORE_BASE64.txt كاملًا"; exit 1; }
+          # نحذف الفراغات والأسطر الزائدة من كلمة السر والاسم (كلمة السر حروف وأرقام فقط)
+          KEYSTORE_PASSWORD="$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d '[:space:]')"
+          KEY_ALIAS="$(printf '%s' "$KEY_ALIAS" | tr -d '[:space:]')"
+          # تشخيص بدون كشف السرّ: الطول ونوع الحروف فقط
+          echo "password length: ${#KEYSTORE_PASSWORD}, alnum-only: $([[ "$KEYSTORE_PASSWORD" =~ ^[A-Za-z0-9]+$ ]] && echo yes || echo no), alias length: ${#KEY_ALIAS}"
+          keytool -list -keystore "$RUNNER_TEMP/upload.jks" -storepass "$KEYSTORE_PASSWORD" >/dev/null 2>&1 || { echo "::error::KEYSTORE_PASSWORD غير صحيحة (المفروض 28 حرفًا ورقمًا، بدون Secret: وبدون فراغات)"; exit 1; }
+          keytool -list -keystore "$RUNNER_TEMP/upload.jks" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null 2>&1 || { echo "::error::KEY_ALIAS غير صحيح (المفروض: upload)"; exit 1; }
+          cp android/app/build/outputs/bundle/release/app-release.aab "$RUNNER_TEMP/signed.aab"
+          jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore "$RUNNER_TEMP/upload.jks" \
+            -storepass "$KEYSTORE_PASSWORD" "$RUNNER_TEMP/signed.aab" "$KEY_ALIAS"
+          jarsigner -verify "$RUNNER_TEMP/signed.aab" | tail -1
+          rm -f "$RUNNER_TEMP/upload.jks"
+      - name: Publish build to "builds" branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir out
+          cp android/app/build/outputs/bundle/release/app-release.aab out/app-unsigned.aab
+          cp android/app/build/outputs/apk/debug/app-debug.apk out/app-debug.apk
+          if [ -f "$RUNNER_TEMP/signed.aab" ]; then cp "$RUNNER_TEMP/signed.aab" out/app-release-signed.aab; fi
+          echo "Build ${{ github.run_number }} (versionCode ${{ github.run_number }}) — ${{ github.ref_name }} @ ${GITHUB_SHA::7}" > out/BUILD
+          ls -la out
+          cd out
+          git init -q -b builds
+          git add .
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "Build ${{ github.run_number }}"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" builds

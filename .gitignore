@@ -1,0 +1,5 @@
+node_modules/
+www/js/game.js
+www/js/game.js.map
+www/js/ads-config.json
+.DS_Store

@@ -1,0 +1,10 @@
+{
+  "appId": "com.devfoxmy.streetfoodrush",
+  "appName": "Street Food Rush",
+  "webDir": "www",
+  "backgroundColor": "#2b1840",
+  "android": { "backgroundColor": "#2b1840" },
+  "plugins": {
+    "SplashScreen": { "launchAutoHide": false, "backgroundColor": "#2b1840", "showSpinner": false }
+  }
+}

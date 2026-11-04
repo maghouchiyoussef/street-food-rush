@@ -1,7 +1,1 @@
-{
-  "_note": "AdMob ids. Replace with your own ids from admob.google.com (edit this file on GitHub). testMode true = Google test ads.",
-  "testMode": true,
-  "appId": "ca-app-pub-3940256099942544~3347511713",
-  "interstitialId": "ca-app-pub-3940256099942544/1033173712",
-  "rewardedId": "ca-app-pub-3940256099942544/5224354917"
-}
+{"_note": "AdMob ids. Replace with your own ids from admob.google.com (edit this file on GitHub). testMode true = Google test ads.", "testMode": true, "appId": "ca-app-pub-2986107222837015~2630838587", "interstitialId": "ca-app-pub-2986107222837015/4546555481", "rewardedId": "ca-app-pub-2986107222837015/9826977335"}

@@ -3,6 +3,7 @@ import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.j
 import type { Dog, Item } from './kitchen';
 import type { LevelDef } from './levels';
 import { PRICE } from './levels';
+import { outfits, recolorTextures } from './outfits';
 import { LAYOUT, type Stage } from './scene';
 
 // Customers: walk in, order, wait (patience), take items, pay and leave.
@@ -65,7 +66,20 @@ export class Customers {
 
   constructor(private stage: Stage, private layer: HTMLElement) {}
 
-  setModel(m: CustomerModel) { this.model = m; }
+  private looks: THREE.Material[] = [];
+  private order = [0, 1, 2, 3, 4, 5, 6, 7];
+
+  setModel(m: CustomerModel) {
+    this.model = m;
+    // Free variety: 8 outfits made by recoloring the texture
+    let base: THREE.MeshStandardMaterial | null = null;
+    m.scene.traverse(o => { const mm = (o as THREE.Mesh).material as THREE.MeshStandardMaterial; if (mm?.map && !base) base = mm; });
+    const b = base as THREE.MeshStandardMaterial | null;
+    if (!b?.map) return;
+    const tex = recolorTextures(b.map, outfits(this.order.length));
+    this.looks = tex.map((t, i) => { if (i === 0) return b; const c = b.clone(); c.map = t; return c; });
+    this.order.sort(() => Math.random() - 0.5);
+  }
 
   reset() {
     for (const c of this.list) { this.stage.scene.remove(c.obj); c.bubble.remove(); }
@@ -98,11 +112,9 @@ export class Customers {
         mixer = new THREE.AnimationMixer(obj);
         mixer.clipAction(this.model.clips[0]).play();
       }
-      // tint variants: shift the shirt hue slightly per customer
-      if (i % 2 === 1) obj.traverse(o => {
-        const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
-        if (m?.color) { const c = m.clone(); c.color.offsetHSL(0.5 * ((i % 4) / 4), 0, 0); (o as THREE.Mesh).material = c; }
-      });
+      const look = this.looks[this.order[i % this.order.length]];
+      if (look) obj.traverse(o => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).material = look; });
+      obj.scale.x *= 0.94 + Math.random() * 0.14;
     } else {
       obj = fallbackCustomer(i);
     }

@@ -10,9 +10,9 @@ export const LAYOUT = {
   bunBox: [-0.46, 1.98] as [number, number],
   sausageBox: [0.46, 1.98] as [number, number],
   plates: [[-0.6, 0.26], [-0.1, 0.26]] as [number, number][],
-  ketchup: [0.24, 0.22] as [number, number],
-  mustard: [0.42, 0.22] as [number, number],
-  soda: [0.74, 0.14] as [number, number],
+  ketchup: [0.34, 0.22] as [number, number],
+  mustard: [0.56, 0.22] as [number, number],
+  soda: [0, 1.88] as [number, number],
   customers: [-0.72, 0, 0.72],
   customerZ: -0.48,
 };
@@ -210,7 +210,6 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   jar.position.set(0, COUNTER_Y + 0.16, 2.0);
   const coinsInJar = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.09, 0.07, 20), mat(0xf4c430, 0.3, { metalness: 0.8 }));
   coinsInJar.position.set(0, COUNTER_Y + 0.075, 2.0);
-  cart.add(jar, coinsInJar);
 
   // Striped awning edge at the top of the view (frames the screen)
   const awning = new THREE.Group();

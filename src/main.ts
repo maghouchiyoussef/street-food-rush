@@ -44,7 +44,7 @@ useCity(CITIES[0]);
 // Customer models: the first one also gets recolored outfits
 // [file, real height in meters] — kids and grandmas are shorter than the counter regulars
 const CUSTOMER_MODELS: [string, number][] = [
-  ['customer.glb', 1.75], ['customer3.glb', 1.74], ['customer4.glb', 1.6],
+  ['customer.glb', 1.75], ['customer2.glb', 1.66], ['customer3.glb', 1.74], ['customer4.glb', 1.6],
   ['customer5.glb', 1.66], ['customer6.glb', 1.72], ['customer7.glb', 1.56],
 ];
 CUSTOMER_MODELS.forEach(([file, tall], i) => loader.load(`models/${file}`, gltf => {

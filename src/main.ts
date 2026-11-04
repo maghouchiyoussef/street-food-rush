@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { buzz, click, coin, ding, fanfare, initAudio, meow, pop, setAudioEnabled, setMusic, setSizzle, squirt } from './audio';
+import { initAds, maybeInterstitial, privacyOptionsRequired, rewardedReady, showPrivacyOptions, showRewarded } from './ads';
 import { Cat } from './cat';
 import { CITIES, cityOf, type City } from './cities';
 import { Customers } from './customers';
@@ -27,6 +28,7 @@ let timeLeft = 0;
 let money = 0;
 let endTimer = 0;
 let tutorial = false;
+let lastEarned = 0;
 
 // ---------- Assets ----------
 const loader = new GLTFLoader();
@@ -168,6 +170,8 @@ function finish() {
   $('res-money').textContent = String(money);
   $('res-served').textContent = String(customers.served);
   $('res-lost').textContent = String(customers.lost);
+  lastEarned = money;
+  $('res-double').classList.toggle('hidden', money <= 0 || !rewardedReady());
   const idx = LEVELS.indexOf(level);
   $('res-next').classList.toggle('hidden', stars === 0 || idx >= LEVELS.length - 1);
   show('results');
@@ -277,13 +281,28 @@ on('levels-back', () => { renderWorld(); show('world'); });
 on('btn-pause', () => { if (mode === 'play') { mode = 'paused'; setSizzle(0); show('hud', 'pause'); } });
 on('pause-resume', () => { mode = 'play'; show('hud'); });
 on('pause-quit', () => { mode = 'menu'; setSizzle(0); kitchen.reset(false); customers.reset(); hint(null); renderLevels(); show('levels'); });
-on('res-retry', () => level && startLevel(level));
-on('res-next', () => { if (level) startLevel(LEVELS[LEVELS.indexOf(level) + 1]); });
-on('res-menu', () => { mode = 'menu'; kitchen.reset(false); customers.reset(); renderLevels(); show('levels'); });
+// an interstitial may show between levels (every 2 levels, never in the first 2 minutes)
+const afterLevel = (fn: () => void) => async () => { await maybeInterstitial(); fn(); };
+on('res-retry', afterLevel(() => level && startLevel(level)));
+on('res-next', afterLevel(() => { if (level) startLevel(LEVELS[LEVELS.indexOf(level) + 1]); }));
+on('res-menu', afterLevel(() => { mode = 'menu'; kitchen.reset(false); customers.reset(); renderLevels(); show('levels'); }));
+on('res-double', async () => {
+  $('res-double').classList.add('hidden');
+  setMusic(false);
+  const ok = await showRewarded();
+  setMusic(save.settings.music);
+  if (!ok) return;
+  save.coins += lastEarned;
+  persist();
+  $('res-money').textContent = String(lastEarned * 2);
+  coin(1.2); hapticSuccess();
+});
+on('set-privacy', () => showPrivacyOptions());
 on('settings-back', () => show('title'));
 on('daily-ok', () => { coin(1.3); $('daily').classList.add('hidden'); });
 
 function renderSettings() {
+  $('row-privacy').classList.toggle('hidden', !privacyOptionsRequired());
   const toggles: [string, 'sound' | 'music' | 'haptics'][] = [['set-sound', 'sound'], ['set-music', 'music'], ['set-haptics', 'haptics']];
   for (const [id, k] of toggles) {
     const el = $(id);
@@ -343,6 +362,7 @@ document.addEventListener('visibilitychange', () => {
 async function boot() {
   await loadSave();
   applyLang();
+  initAds();
   setAudioEnabled(save.settings.sound);
   show('title');
   frame();

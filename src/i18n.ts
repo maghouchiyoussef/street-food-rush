@@ -4,6 +4,7 @@ import { save, type Lang } from './save';
 
 const T = {
   en: {
+    double: 'Double coins', privacy: 'Privacy options', manage: 'Manage', policy: 'Privacy policy', open: 'Open',
     shoo: 'Shoo!',
     world: 'World tour', shop: 'Upgrades', max: 'MAX', streak: 'Day streak', daily: 'Daily reward', claim: 'Collect',
     up_grill: 'Hot grill', upd_grill: 'Food cooks faster', up_patience: 'Comfy queue', upd_patience: 'Customers wait longer',
@@ -23,6 +24,7 @@ const T = {
     perfect: 'Perfect!', combo: 'Combo',
   },
   fr: {
+    double: 'Doubler les pièces', privacy: 'Confidentialité', manage: 'Gérer', policy: 'Politique de confidentialité', open: 'Ouvrir',
     shoo: 'Ouste !',
     world: 'Tour du monde', shop: 'Améliorations', max: 'MAX', streak: 'Jours de suite', daily: 'Cadeau du jour', claim: 'Récupérer',
     up_grill: 'Grill brûlant', upd_grill: 'La cuisson est plus rapide', up_patience: 'File confortable', upd_patience: 'Les clients attendent plus',
@@ -42,6 +44,7 @@ const T = {
     perfect: 'Parfait !', combo: 'Combo',
   },
   es: {
+    double: 'Duplicar monedas', privacy: 'Privacidad', manage: 'Gestionar', policy: 'Política de privacidad', open: 'Abrir',
     shoo: '¡Fuera!',
     world: 'Vuelta al mundo', shop: 'Mejoras', max: 'MÁX', streak: 'Días seguidos', daily: 'Regalo diario', claim: 'Recoger',
     up_grill: 'Parrilla potente', upd_grill: 'La comida se cocina más rápido', up_patience: 'Fila cómoda', upd_patience: 'Los clientes esperan más',
@@ -61,6 +64,7 @@ const T = {
     perfect: '¡Perfecto!', combo: 'Combo',
   },
   ar: {
+    double: 'ضاعف العملات', privacy: 'خيارات الخصوصية', manage: 'إدارة', policy: 'سياسة الخصوصية', open: 'افتح',
     shoo: 'اذهب!',
     world: 'جولة حول العالم', shop: 'الترقيات', max: 'الأقصى', streak: 'أيام متتالية', daily: 'هدية اليوم', claim: 'خذها',
     up_grill: 'شواية قوية', upd_grill: 'الطبخ أسرع', up_patience: 'طابور مريح', upd_patience: 'الزبائن ينتظرون أكثر',

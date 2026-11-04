@@ -56,7 +56,6 @@ export class Customers {
   list: Customer[] = [];
   private spawnTimer = 0;
   private count = 0;
-  private model: CustomerModel | null = null;
   served = 0;
   lost = 0;
   combo = 0;
@@ -66,19 +65,36 @@ export class Customers {
 
   constructor(private stage: Stage, private layer: HTMLElement) {}
 
-  private looks: THREE.Material[] = [];
-  private order = [0, 1, 2, 3, 4, 5, 6, 7];
+  /** Each model with its looks (materials). Model 0 gets 8 recolored outfits for free. */
+  private kinds: { model: CustomerModel; looks: THREE.Material[] }[] = [];
+  private deck: [number, number][] = [];
 
-  setModel(m: CustomerModel) {
-    this.model = m;
-    // Free variety: 8 outfits made by recoloring the texture
+  addModel(m: CustomerModel, recolor: boolean) {
     let base: THREE.MeshStandardMaterial | null = null;
     m.scene.traverse(o => { const mm = (o as THREE.Mesh).material as THREE.MeshStandardMaterial; if (mm?.map && !base) base = mm; });
     const b = base as THREE.MeshStandardMaterial | null;
-    if (!b?.map) return;
-    const tex = recolorTextures(b.map, outfits(this.order.length));
-    this.looks = tex.map((t, i) => { if (i === 0) return b; const c = b.clone(); c.map = t; return c; });
-    this.order.sort(() => Math.random() - 0.5);
+    let looks: THREE.Material[] = b ? [b] : [];
+    if (b?.map && recolor) {
+      const tex = recolorTextures(b.map, outfits(8));
+      looks = tex.map((t, i) => { if (i === 0) return b; const c = b.clone(); c.map = t; return c; });
+    }
+    // the recolored model is always kind 0 (models can finish loading in any order)
+    if (recolor) this.kinds.unshift({ model: m, looks }); else this.kinds.push({ model: m, looks });
+    this.deck = [];
+  }
+
+  /** Next (model, look) from a shuffled deck so faces don't repeat too often */
+  private nextLook(): [number, number] {
+    if (!this.deck.length) {
+      // the other models appear as often as the whole recolored set
+      for (let k = 0; k < this.kinds.length; k++) {
+        const n = this.kinds[k].looks.length || 1;
+        const reps = k === 0 ? 1 : Math.max(1, Math.round(8 / this.kinds.length / n));
+        for (let r = 0; r < reps; r++) for (let l = 0; l < n; l++) this.deck.push([k, l]);
+      }
+      this.deck.sort(() => Math.random() - 0.5);
+    }
+    return this.deck.pop()!;
   }
 
   reset() {
@@ -104,15 +120,18 @@ export class Customers {
     const slot = forceFirst ? free[0] : free[Math.floor(Math.random() * free.length)];
     const i = this.count++;
     let obj: THREE.Object3D, mixer: THREE.AnimationMixer | null = null;
-    if (this.model) {
-      obj = skeletonClone(this.model.scene);
-      const s = (1.75 / this.model.height) * (0.92 + Math.random() * 0.14);
+    if (this.kinds.length) {
+      const [k, l] = this.nextLook();
+      const kind = this.kinds[k];
+      obj = skeletonClone(kind.model.scene);
+      const s = (1.75 / kind.model.height) * (0.92 + Math.random() * 0.14);
       obj.scale.setScalar(s);
-      if (this.model.clips.length) {
+      if (kind.model.clips.length) {
         mixer = new THREE.AnimationMixer(obj);
-        mixer.clipAction(this.model.clips[0]).play();
+        mixer.clipAction(kind.model.clips[0]).play();
+        (mixer as any).clipDur = kind.model.clips[0].duration;
       }
-      const look = this.looks[this.order[i % this.order.length]];
+      const look = kind.looks[l];
       if (look) obj.traverse(o => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).material = look; });
       obj.scale.x *= 0.94 + Math.random() * 0.14;
     } else {
@@ -223,6 +242,8 @@ export class Customers {
           if (c.state === 'enter') {
             c.state = 'wait';
             c.bubble.classList.remove('hidden');
+            // stand still on the most upright frame of the walk cycle
+            if (c.mixer) c.mixer.setTime((c.mixer as any).clipDur * 0.5);
             this.onEvent('arrive', c);
           } else {
             this.stage.scene.remove(c.obj);

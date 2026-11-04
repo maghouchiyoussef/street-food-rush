@@ -27,10 +27,16 @@ let tutorial = false;
 // ---------- Assets ----------
 const loader = new GLTFLoader();
 new THREE.TextureLoader().load('img/nyc.jpg', tex => stage.setBackground(tex));
-loader.load('models/customer.glb', gltf => {
+// Customer models: the first one also gets recolored outfits
+const CUSTOMER_MODELS = ['customer.glb'];
+CUSTOMER_MODELS.forEach((file, i) => loader.load(`models/${file}`, gltf => {
   const box = new THREE.Box3().setFromObject(gltf.scene);
-  customers.setModel({ scene: gltf.scene, clips: gltf.animations, height: box.max.y - box.min.y });
-}, undefined, () => { /* fallback customers are used */ });
+  gltf.scene.traverse(o => {
+    const m = o as THREE.SkinnedMesh;
+    if (m.isMesh && !m.geometry.attributes.normal) m.geometry.computeVertexNormals();
+  });
+  customers.addModel({ scene: gltf.scene, clips: gltf.animations, height: box.max.y - box.min.y }, i === 0);
+}, undefined, () => { /* fallback customers are used */ }));
 
 // ---------- Screens ----------
 const screens = ['title', 'levels', 'hud', 'pause', 'results', 'settings'];

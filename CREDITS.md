@@ -21,3 +21,6 @@ All prompts asked for generic designs: no text, no logos, no brands.
 ## Libraries
 - three.js (MIT), Capacitor (MIT)
 - Emoji in the order bubbles are rendered by the phone's system font.
+
+## Tests kept for reference (not used in the game)
+- `art/models/customer_woman_sam.glb`: woman customer, Higgsfield image → SAM 3 3D → Meshy rigging (cheaper route, lower face quality)

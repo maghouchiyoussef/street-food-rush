@@ -104,6 +104,20 @@ export function fanfare() {
   });
 }
 
+/** Cat meow: a pitch glide with a little vibrato */
+export function meow(pitch = 1) {
+  if (!ctx || !enabled) return;
+  const t = ctx.currentTime;
+  const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(520 * pitch, t);
+  o.frequency.linearRampToValueAtTime(820 * pitch, t + 0.12);
+  o.frequency.exponentialRampToValueAtTime(380 * pitch, t + 0.45);
+  f.type = 'bandpass'; f.frequency.value = 1200; f.Q.value = 2;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.18, t + 0.04); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+  o.connect(f).connect(g).connect(master); o.start(t); o.stop(t + 0.55);
+}
+
 export function click() {
   if (!ctx) return;
   tone(880, ctx.currentTime, 0.08, 0.07, 'square');

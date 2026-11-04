@@ -1,8 +1,12 @@
-// Level definitions. City 1: New York, hot dog cart.
+import { CITIES } from './cities';
+
+// Levels: 10 per city, getting harder. Level 1 of the first city has the tutorial.
 
 export interface LevelDef {
   id: string;
-  city: 'nyc';
+  city: string;
+  n: number;              // 1..10 inside the city
+  index: number;          // global index
   duration: number;       // seconds
   target: number;         // coins for 1 star
   sauces: ('k' | 'm')[];  // sauces that can appear in orders
@@ -12,11 +16,30 @@ export interface LevelDef {
   maxCustomers: number;   // spots at the counter (1-3)
 }
 
-export const LEVELS: LevelDef[] = [
-  { id: 'nyc-1', city: 'nyc', duration: 75, target: 45, sauces: ['k'], soda: false, spawnEvery: 8, patience: 32, maxCustomers: 2 },
-  { id: 'nyc-2', city: 'nyc', duration: 90, target: 80, sauces: ['k', 'm'], soda: false, spawnEvery: 6.5, patience: 28, maxCustomers: 3 },
-  { id: 'nyc-3', city: 'nyc', duration: 90, target: 110, sauces: ['k', 'm'], soda: true, spawnEvery: 6, patience: 26, maxCustomers: 3 },
-];
+export const PER_CITY = 10;
+
+function makeLevels(): LevelDef[] {
+  const out: LevelDef[] = [];
+  CITIES.forEach((city, ci) => {
+    for (let n = 1; n <= PER_CITY; n++) {
+      const d = ci * 0.6 + n;          // overall difficulty
+      const first = ci === 0;
+      const sauces: ('k' | 'm')[] = first && n === 1 ? ['k'] : ['k', 'm'];
+      const soda = !(first && n < 3) && !(ci > 0 && n === 1);
+      const maxCustomers = first && n === 1 ? 2 : 3;
+      const duration = Math.min(120, 75 + n * 4);
+      const spawnEvery = Math.max(3.6, 8 - d * 0.42);
+      const patience = Math.max(16, 32 - d * 1.2);
+      // money a good player can make: roughly one order every spawnEvery seconds
+      const perOrder = 6.5 + (soda ? 1.6 : 0);
+      const target = Math.round((duration / spawnEvery) * perOrder * 0.62 / 5) * 5;
+      out.push({ id: `${city.id}-${n}`, city: city.id, n, index: out.length, duration, target, sauces, soda, spawnEvery, patience, maxCustomers });
+    }
+  });
+  return out;
+}
+
+export const LEVELS = makeLevels();
 
 export const PRICE = { dog: 5, sauce: 1, soda: 3, perfect: 1 };
 

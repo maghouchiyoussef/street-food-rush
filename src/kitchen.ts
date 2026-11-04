@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { bun, cookSausage, cup, KETCHUP, MUSTARD, sauceLine, sausage, tray } from './food';
+import { CITIES, type City } from './cities';
+import { baseItem, cookMain, cup, mainItem, sauceLine, tray } from './food';
 import { COUNTER_Y, LAYOUT, type Stage } from './scene';
 
 // The cooking stations: grill (3 slots), plates (2), sauces, soda machine.
@@ -41,6 +42,10 @@ export class Kitchen {
   cup: Cup | null = null;
   selected = -1;
   sodaEnabled = false;
+  city: City = CITIES[0];
+  /** upgrades: cook speed multiplier and number of grill slots / plates in use */
+  cookSpeed = 1;
+  grillSlots = 3;
   /** Called to hand an item to a customer; returns true if someone took it */
   serve: (item: Item) => boolean = () => false;
   private smoke: THREE.Sprite[] = [];
@@ -57,11 +62,12 @@ export class Kitchen {
     this.smokeTex = new THREE.CanvasTexture(c);
   }
 
-  reset(soda: boolean) {
+  reset(soda: boolean, city: City = this.city) {
+    this.city = city;
     for (const gi of this.grill) if (gi) this.stage.scene.remove(gi.mesh);
     for (const p of this.plates) if (p) this.stage.scene.remove(p.group);
     if (this.cup) this.stage.scene.remove(this.cup.group);
-    this.grill = [null, null, null];
+    this.grill = Array(this.grillSlots).fill(null);
     this.plates = [null, null];
     this.cup = null;
     this.selected = -1;
@@ -81,7 +87,7 @@ export class Kitchen {
     if (id === 'sausages') {
       const i = this.grill.indexOf(null);
       if (i < 0) return 'noSlot';
-      const m = sausage();
+      const m = mainItem(this.city.main, this.city.mainColors);
       m.position.set(LAYOUT.sausageBox[0], COUNTER_Y + 0.1, LAYOUT.sausageBox[1]);
       this.stage.scene.add(m);
       const [x, z] = LAYOUT.grillSlots[i];
@@ -96,9 +102,10 @@ export class Kitchen {
       const group = new THREE.Group();
       group.position.set(x, COUNTER_Y, z);
       const tr = tray();
-      const b = bun();
+      const [b, topY] = baseItem(this.city.base);
       b.position.y = 0.03;
       group.add(tr, b);
+      group.userData.topY = topY + 0.03;
       group.scale.setScalar(1.25);
       this.stage.scene.add(group);
       bounce(group);
@@ -128,7 +135,7 @@ export class Kitchen {
       plate.group.add(gi.mesh);
       gi.mesh.position.copy(plate.group.worldToLocal(world));
       gi.mesh.scale.setScalar(1 / plate.group.scale.x * 1.1);
-      fly(gi.mesh, new THREE.Vector3(0, 0.075, 0), 0.25, 0.2, () => bounce(plate.group));
+      fly(gi.mesh, new THREE.Vector3(0, plate.group.userData.topY ?? 0.075, 0), 0.25, 0.2, () => bounce(plate.group));
       (gi.mesh.material as THREE.MeshStandardMaterial).emissive.setHex(0);
       this.selected = p;
       return 'toBun';
@@ -143,8 +150,8 @@ export class Kitchen {
       if (p < 0) return 'noDog';
       const plate = this.plates[p]!;
       plate[key] = true;
-      const line = sauceLine(key === 'k' ? KETCHUP : MUSTARD, key === 'k' ? 0 : 1.6);
-      line.position.set(0, 0.125 + (key === 'm' && plate.k ? 0.01 : 0) + (key === 'k' && plate.m ? 0.01 : 0), 0);
+      const line = sauceLine(this.city.sauces[key === 'k' ? 0 : 1], key === 'k' ? 0 : 1.6);
+      line.position.set(0, (plate.group.userData.topY ?? 0.075) + (this.city.main === 'crepe' ? 0.015 : this.city.main === 'strip' ? 0.03 : 0.05) + (key === 'm' && plate.k ? 0.01 : 0) + (key === 'k' && plate.m ? 0.01 : 0), 0);
       line.scale.set(1.1, 1, 1);
       plate.group.add(line);
       bounce(plate.group);
@@ -166,7 +173,7 @@ export class Kitchen {
     if (id === 'soda') {
       if (!this.sodaEnabled) return 'nothing';
       if (!this.cup) {
-        const group = cup();
+        const group = cup(this.city.drinkColor);
         group.position.set(LAYOUT.soda[0], COUNTER_Y + 0.02, LAYOUT.soda[1] + 0.12);
         group.scale.setScalar(1.15);
         this.stage.scene.add(group);
@@ -187,10 +194,10 @@ export class Kitchen {
   update(dt: number) {
     for (const gi of this.grill) {
       if (!gi) continue;
-      gi.t += dt;
-      cookSausage(gi.mesh, gi.t, COOK_AT, BURN_AT);
+      gi.t += dt * this.cookSpeed;
+      cookMain(gi.mesh, gi.t, COOK_AT, BURN_AT);
       // sizzle: roll a bit and puff smoke
-      gi.mesh.rotation.x = Math.sin(gi.t * 1.3) * 0.15;
+      if (this.city.main !== 'crepe') gi.mesh.rotation.x = Math.sin(gi.t * 1.3) * 0.15;
       const burning = gi.t >= BURN_AT - 1.5;
       if (Math.random() < dt * (burning ? 9 : 3)) this.puff(gi.mesh.position, burning);
     }

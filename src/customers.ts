@@ -3,6 +3,7 @@ import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.j
 import type { Dog, Item } from './kitchen';
 import type { LevelDef } from './levels';
 import { PRICE } from './levels';
+import { CITIES, type City } from './cities';
 import { outfits, recolorTextures } from './outfits';
 import { LAYOUT, type Stage } from './scene';
 
@@ -28,7 +29,7 @@ interface Customer {
 }
 
 /** A model template (GLB scene + animations) or null for the fallback */
-export interface CustomerModel { scene: THREE.Object3D; clips: THREE.AnimationClip[]; height: number }
+export interface CustomerModel { scene: THREE.Object3D; clips: THREE.AnimationClip[]; height: number; tall: number }
 
 const SHIRTS = [0x4f8fe0, 0xe0614f, 0x58b368, 0xf0b23a, 0x9b6bd6, 0xef7fb0];
 
@@ -56,6 +57,9 @@ export class Customers {
   list: Customer[] = [];
   private spawnTimer = 0;
   private count = 0;
+  city: City = CITIES[0];
+  /** upgrade effects: patience multiplier, tip multiplier, extra coins per dish */
+  fx = { patience: 1, tips: 1, bonus: 0 };
   served = 0;
   lost = 0;
   combo = 0;
@@ -124,7 +128,7 @@ export class Customers {
       const [k, l] = this.nextLook();
       const kind = this.kinds[k];
       obj = skeletonClone(kind.model.scene);
-      const s = (1.75 / kind.model.height) * (0.92 + Math.random() * 0.14);
+      const s = (kind.model.tall / kind.model.height) * (0.96 + Math.random() * 0.08);
       obj.scale.setScalar(s);
       if (kind.model.clips.length) {
         mixer = new THREE.AnimationMixer(obj);
@@ -149,7 +153,7 @@ export class Customers {
     const order = this.makeOrder(def);
     const c: Customer = {
       obj, mixer, slot, state: 'enter', from, to, walkT: 0, walkDur: from.distanceTo(to) / 1.6,
-      patience: def.patience, maxPatience: def.patience, order, gotDog: !order.dog, gotSoda: !order.soda,
+      patience: def.patience * this.fx.patience, maxPatience: def.patience * this.fx.patience, order, gotDog: !order.dog, gotSoda: !order.soda,
       earned: 0, perfect: false, bubble, mood: 'ok', bobPhase: Math.random() * 6,
     };
     this.renderBubble(c);
@@ -159,10 +163,11 @@ export class Customers {
   private renderBubble(c: Customer) {
     let html = '';
     if (c.order.dog) {
-      const sauces = (c.order.dog.k ? '<i class="k"></i>' : '') + (c.order.dog.m ? '<i class="m"></i>' : '');
-      html += `<div class="item dog ${c.gotDog ? 'got' : ''}"><span>🌭</span><div class="sauces">${sauces}</div></div>`;
+      const col = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
+      const sauces = (c.order.dog.k ? `<i style="background:${col(this.city.sauces[0])}"></i>` : '') + (c.order.dog.m ? `<i style="background:${col(this.city.sauces[1])}"></i>` : '');
+      html += `<div class="item dog ${c.gotDog ? 'got' : ''}"><span>${this.city.dish}</span><div class="sauces">${sauces}</div></div>`;
     }
-    if (c.order.soda) html += `<div class="item soda ${c.gotSoda ? 'got' : ''}"><span>🥤</span></div>`;
+    if (c.order.soda) html += `<div class="item soda ${c.gotSoda ? 'got' : ''}"><span>${this.city.drink}</span></div>`;
     c.bubble.innerHTML = `<div class="order">${html}</div><div class="patience"><b></b></div>`;
   }
 
@@ -175,7 +180,7 @@ export class Customers {
       if (item.kind === 'dog') {
         if (c.gotDog || !c.order.dog || !sameDog(c.order.dog, item.dog)) continue;
         c.gotDog = true;
-        coins = PRICE.dog + (item.dog.k ? PRICE.sauce : 0) + (item.dog.m ? PRICE.sauce : 0);
+        coins = PRICE.dog + this.fx.bonus + (item.dog.k ? PRICE.sauce : 0) + (item.dog.m ? PRICE.sauce : 0);
         if (item.dog.quality === 'perfect') { coins += PRICE.perfect; c.perfect = true; }
       } else {
         if (c.gotSoda || !c.order.soda) continue;
@@ -187,7 +192,7 @@ export class Customers {
       let tip = 0;
       if (done) {
         const frac = c.patience / c.maxPatience;
-        tip = Math.round(c.earned * 0.5 * frac);
+        tip = Math.round(c.earned * 0.5 * frac * this.fx.tips);
         this.combo = this.time - this.lastDone < 7 ? this.combo + 1 : 1;
         this.lastDone = this.time;
         if (this.combo >= 2) tip += this.combo;

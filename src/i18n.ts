@@ -4,6 +4,10 @@ import { save, type Lang } from './save';
 
 const T = {
   en: {
+    shoo: 'Shoo!',
+    world: 'World tour', shop: 'Upgrades', max: 'MAX', streak: 'Day streak', daily: 'Daily reward', claim: 'Collect',
+    up_grill: 'Hot grill', upd_grill: 'Food cooks faster', up_patience: 'Comfy queue', upd_patience: 'Customers wait longer',
+    up_tips: 'Big tips', upd_tips: 'Happy customers tip more', up_price: 'Gourmet recipe', upd_price: 'Every dish sells for more',
     play: 'Play', levels: 'New York', level: 'Level', target: 'Goal', time: 'Time',
     paused: 'Paused', resume: 'Resume', quit: 'Quit', retry: 'Retry', next: 'Next', menu: 'Menu',
     settings: 'Settings', sound: 'Sound', music: 'Music', haptics: 'Vibration', language: 'Language', back: 'Back',
@@ -19,6 +23,10 @@ const T = {
     perfect: 'Perfect!', combo: 'Combo',
   },
   fr: {
+    shoo: 'Ouste !',
+    world: 'Tour du monde', shop: 'Améliorations', max: 'MAX', streak: 'Jours de suite', daily: 'Cadeau du jour', claim: 'Récupérer',
+    up_grill: 'Grill brûlant', upd_grill: 'La cuisson est plus rapide', up_patience: 'File confortable', upd_patience: 'Les clients attendent plus',
+    up_tips: 'Gros pourboires', upd_tips: 'Les clients heureux donnent plus', up_price: 'Recette gourmet', upd_price: 'Chaque plat rapporte plus',
     play: 'Jouer', levels: 'New York', level: 'Niveau', target: 'Objectif', time: 'Temps',
     paused: 'Pause', resume: 'Reprendre', quit: 'Quitter', retry: 'Rejouer', next: 'Suivant', menu: 'Menu',
     settings: 'Réglages', sound: 'Son', music: 'Musique', haptics: 'Vibration', language: 'Langue', back: 'Retour',
@@ -34,6 +42,10 @@ const T = {
     perfect: 'Parfait !', combo: 'Combo',
   },
   es: {
+    shoo: '¡Fuera!',
+    world: 'Vuelta al mundo', shop: 'Mejoras', max: 'MÁX', streak: 'Días seguidos', daily: 'Regalo diario', claim: 'Recoger',
+    up_grill: 'Parrilla potente', upd_grill: 'La comida se cocina más rápido', up_patience: 'Fila cómoda', upd_patience: 'Los clientes esperan más',
+    up_tips: 'Buenas propinas', upd_tips: 'Los clientes felices dan más propina', up_price: 'Receta gourmet', upd_price: 'Cada plato se vende más caro',
     play: 'Jugar', levels: 'Nueva York', level: 'Nivel', target: 'Meta', time: 'Tiempo',
     paused: 'Pausa', resume: 'Seguir', quit: 'Salir', retry: 'Repetir', next: 'Siguiente', menu: 'Menú',
     settings: 'Ajustes', sound: 'Sonido', music: 'Música', haptics: 'Vibración', language: 'Idioma', back: 'Volver',
@@ -49,6 +61,10 @@ const T = {
     perfect: '¡Perfecto!', combo: 'Combo',
   },
   ar: {
+    shoo: 'اذهب!',
+    world: 'جولة حول العالم', shop: 'الترقيات', max: 'الأقصى', streak: 'أيام متتالية', daily: 'هدية اليوم', claim: 'خذها',
+    up_grill: 'شواية قوية', upd_grill: 'الطبخ أسرع', up_patience: 'طابور مريح', upd_patience: 'الزبائن ينتظرون أكثر',
+    up_tips: 'بقشيش كبير', upd_tips: 'الزبائن السعداء يعطون أكثر', up_price: 'وصفة فاخرة', upd_price: 'كل طبق يُباع بثمن أعلى',
     play: 'العب', levels: 'نيويورك', level: 'المستوى', target: 'الهدف', time: 'الوقت',
     paused: 'إيقاف مؤقت', resume: 'تابع', quit: 'خروج', retry: 'أعد', next: 'التالي', menu: 'القائمة',
     settings: 'الإعدادات', sound: 'الأصوات', music: 'الموسيقى', haptics: 'الاهتزاز', language: 'اللغة', back: 'رجوع',

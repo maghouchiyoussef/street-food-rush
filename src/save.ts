@@ -9,6 +9,8 @@ export interface SaveData {
   stars: Record<string, number>;   // best stars per level
   best: Record<string, number>;    // best money per level
   tutorialDone: boolean;
+  upgrades: Record<string, number>;
+  daily: { last: string; streak: number };
   settings: { sound: boolean; music: boolean; haptics: boolean; lang: Lang };
 }
 
@@ -19,6 +21,8 @@ export const save: SaveData = {
   stars: {},
   best: {},
   tutorialDone: false,
+  upgrades: {},
+  daily: { last: '', streak: 0 },
   settings: { sound: true, music: true, haptics: true, lang: 'en' },
 };
 

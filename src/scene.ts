@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { bun, sausage } from './food';
+import type { City } from './cities';
+import { baseItem, mainItem } from './food';
 
 // Renderer, camera, lights, the street background and the food cart counter.
 
@@ -28,6 +29,7 @@ export interface Stage {
   ketchup: THREE.Group;
   mustard: THREE.Group;
   sodaMachine: THREE.Group;
+  setCity(city: City): void;
   setBackground(tex: THREE.Texture): void;
   resize(): void;
 }
@@ -145,12 +147,8 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   const bunCrate = crate(0xb07a45);
   bunCrate.scale.setScalar(1.2);
   bunCrate.position.set(LAYOUT.bunBox[0], COUNTER_Y, LAYOUT.bunBox[1]);
-  for (let i = 0; i < 3; i++) {
-    const b = bun();
-    b.position.set(0, 0.03 + (i === 2 ? 0.07 : 0), -0.07 + (i % 2) * 0.13 + (i === 2 ? 0.065 : 0));
-    b.scale.setScalar(1.15);
-    bunCrate.add(b);
-  }
+  const crateFill = new THREE.Group();
+  bunCrate.add(crateFill);
   cart.add(bunCrate);
   hitBox('buns', 0.44, 0.3, 0.4, LAYOUT.bunBox[0], COUNTER_Y + 0.1, LAYOUT.bunBox[1], hits, scene);
 
@@ -161,12 +159,8 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   const plate = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.03, 0.28), mat(0x3d8bd9, 0.5));
   plate.position.y = 0.015;
   sTray.add(plate);
-  for (let i = 0; i < 4; i++) {
-    const s = sausage();
-    s.position.set(0, 0.075, -0.09 + i * 0.06);
-    s.scale.setScalar(1.05);
-    sTray.add(s);
-  }
+  const trayFill = new THREE.Group();
+  sTray.add(trayFill);
   cart.add(sTray);
   hitBox('sausages', 0.44, 0.3, 0.38, LAYOUT.sausageBox[0], COUNTER_Y + 0.1, LAYOUT.sausageBox[1], hits, scene);
 
@@ -185,7 +179,8 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   // Soda machine
   const sodaMachine = new THREE.Group();
   sodaMachine.position.set(LAYOUT.soda[0], COUNTER_Y, LAYOUT.soda[1]);
-  const box = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.5, 0.22), mat(0x1e63c9, 0.4));
+  const machineMat = mat(0x1e63c9, 0.4);
+  const box = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.5, 0.22), machineMat);
   box.position.set(0, 0.25 + 0.12, -0.06);
   box.castShadow = true;
   const panel = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.01), mat(0xffffff, 0.3, { emissive: 0x6fb7ff, emissiveIntensity: 0.6 }));
@@ -194,7 +189,7 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   nozzle.position.set(0, 0.32, 0.06);
   const drip = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.18), steel);
   drip.position.set(0, 0.01, 0.06);
-  const legs = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.12, 0.08), mat(0x1e63c9, 0.4));
+  const legs = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.12, 0.08), machineMat);
   legs.position.set(0, 0.06, -0.13);
   sodaMachine.add(box, panel, nozzle, drip, legs);
   cart.add(sodaMachine);
@@ -214,9 +209,10 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   // Striped awning edge at the top of the view (frames the screen)
   const awning = new THREE.Group();
   const stripeW = 0.25;
+  const awningMats = [mat(0xd6342c, 0.7, { side: THREE.DoubleSide }), mat(0xffffff, 0.7, { side: THREE.DoubleSide })];
   for (let i = -8; i < 8; i++) {
     const g = new THREE.CylinderGeometry(stripeW / 2, stripeW / 2, 0.04, 16, 1, false, 0, Math.PI);
-    const scallop = new THREE.Mesh(g, mat(i % 2 ? 0xffffff : 0xd6342c, 0.7, { side: THREE.DoubleSide }));
+    const scallop = new THREE.Mesh(g, awningMats[Math.abs(i) % 2]);
     scallop.rotation.set(Math.PI / 2, 0, 0);
     scallop.position.set((i + 0.5) * stripeW, 0, 0);
     const panelS = new THREE.Mesh(new THREE.BoxGeometry(stripeW, 0.5, 0.03), scallop.material);
@@ -228,6 +224,36 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
 
   const stage: Stage = {
     renderer, scene, camera, hits, ketchup, mustard, sodaMachine,
+    setCity(city) {
+      red.color.setHex(city.cart.body);
+      steel.color.setHex(city.cart.trim);
+      awningMats[0].color.setHex(city.cart.awning[0]);
+      awningMats[1].color.setHex(city.cart.awning[1]);
+      machineMat.color.setHex(city.cart.machine);
+      (scene.background as THREE.Color).setHex(city.sky);
+      scene.fog!.color.setHex(city.sky);
+      [ketchup, mustard].forEach((b, i) => {
+        ((b.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial).color.setHex(city.sauces[i]);
+        ((b.children[1] as THREE.Mesh).material as THREE.MeshStandardMaterial).color.setHex(city.sauces[i]);
+      });
+      crateFill.clear();
+      for (let i = 0; i < 3; i++) {
+        const [b] = baseItem(city.base);
+        if (city.base === 'bun') b.position.set(0, 0.03 + (i === 2 ? 0.07 : 0), -0.07 + (i % 2) * 0.13 + (i === 2 ? 0.065 : 0));
+        else b.position.set(0, 0.02 + i * 0.035, 0);
+        b.scale.setScalar(city.base === 'bun' ? 1.15 : 0.95);
+        crateFill.add(b);
+      }
+      trayFill.clear();
+      const n = city.main === 'crepe' ? 3 : 4;
+      for (let i = 0; i < n; i++) {
+        const m = mainItem(city.main, city.mainColors);
+        if (city.main === 'crepe') m.position.set(0, 0.04 + i * 0.016, 0);
+        else m.position.set(0, city.main === 'strip' ? 0.05 : 0.075, -0.09 + i * 0.06);
+        m.scale.setScalar(city.main === 'crepe' ? 0.95 : 1.05);
+        trayFill.add(m);
+      }
+    },
     setBackground(tex) {
       tex.colorSpace = THREE.SRGBColorSpace;
       bgMat.map = tex; bgMat.needsUpdate = true;

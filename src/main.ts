@@ -1,10 +1,13 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { buzz, click, coin, ding, fanfare, initAudio, pop, setAudioEnabled, setMusic, setSizzle, squirt } from './audio';
+import { buzz, click, coin, ding, fanfare, initAudio, meow, pop, setAudioEnabled, setMusic, setSizzle, squirt } from './audio';
+import { Cat } from './cat';
+import { CITIES, cityOf, type City } from './cities';
 import { Customers } from './customers';
 import { applyLang, LANGS, t, type Key } from './i18n';
 import { Kitchen, type TapResult } from './kitchen';
-import { LEVELS, starsFor, type LevelDef } from './levels';
+import { LEVELS, PER_CITY, starsFor, type LevelDef } from './levels';
+import { buy, claimDaily, effects, level as upLevel, UPGRADES } from './shop';
 import { hapticLight, hapticSuccess, minimize, nativeReady } from './native';
 import { loadSave, persist, save, type Lang } from './save';
 import { createStage } from './scene';
@@ -15,6 +18,7 @@ const canvas = $<HTMLCanvasElement>('game');
 const stage = createStage(canvas);
 const kitchen = new Kitchen(stage);
 const customers = new Customers(stage, $('bubbles'));
+const cat = new Cat(stage, kitchen);
 
 type Mode = 'menu' | 'play' | 'paused' | 'end';
 let mode: Mode = 'menu';
@@ -26,38 +30,94 @@ let tutorial = false;
 
 // ---------- Assets ----------
 const loader = new GLTFLoader();
-new THREE.TextureLoader().load('img/nyc.jpg', tex => stage.setBackground(tex));
+const texLoader = new THREE.TextureLoader();
+const bgCache = new Map<string, THREE.Texture>();
+function useCity(city: City) {
+  stage.setCity(city);
+  kitchen.city = city;
+  customers.city = city;
+  const cached = bgCache.get(city.id);
+  if (cached) stage.setBackground(cached);
+  else texLoader.load(city.bg, tex => { bgCache.set(city.id, tex); if (kitchen.city === city) stage.setBackground(tex); });
+}
+useCity(CITIES[0]);
 // Customer models: the first one also gets recolored outfits
-const CUSTOMER_MODELS = ['customer.glb'];
-CUSTOMER_MODELS.forEach((file, i) => loader.load(`models/${file}`, gltf => {
+// [file, real height in meters] — kids and grandmas are shorter than the counter regulars
+const CUSTOMER_MODELS: [string, number][] = [
+  ['customer.glb', 1.75], ['customer3.glb', 1.74], ['customer4.glb', 1.6],
+  ['customer5.glb', 1.66], ['customer6.glb', 1.72], ['customer7.glb', 1.56],
+];
+CUSTOMER_MODELS.forEach(([file, tall], i) => loader.load(`models/${file}`, gltf => {
   const box = new THREE.Box3().setFromObject(gltf.scene);
   gltf.scene.traverse(o => {
     const m = o as THREE.SkinnedMesh;
     if (m.isMesh && !m.geometry.attributes.normal) m.geometry.computeVertexNormals();
   });
-  customers.addModel({ scene: gltf.scene, clips: gltf.animations, height: box.max.y - box.min.y }, i === 0);
+  customers.addModel({ scene: gltf.scene, clips: gltf.animations, height: box.max.y - box.min.y, tall }, i === 0);
 }, undefined, () => { /* fallback customers are used */ }));
 
 // ---------- Screens ----------
-const screens = ['title', 'levels', 'hud', 'pause', 'results', 'settings'];
+const screens = ['title', 'world', 'levels', 'shop', 'hud', 'pause', 'results', 'settings'];
 function show(...ids: string[]) {
   for (const s of screens) $(s).classList.toggle('hidden', !ids.includes(s));
+}
+
+const unlockedIdx = (i: number) => i === 0 || (save.stars[LEVELS[i - 1].id] ?? 0) > 0;
+const cityStars = (id: string) => LEVELS.filter(l => l.city === id).reduce((n, l) => n + (save.stars[l.id] ?? 0), 0);
+let currentCity: City = CITIES[0];
+
+function renderWorld() {
+  const list = $('city-list');
+  list.innerHTML = '';
+  CITIES.forEach((city, ci) => {
+    const first = LEVELS[ci * PER_CITY];
+    const open = unlockedIdx(first.index);
+    const b = document.createElement('button');
+    b.className = 'city-card' + (open ? '' : ' locked');
+    b.style.backgroundImage = `linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(43,24,64,.85)), url(${city.bg})`;
+    b.innerHTML = `<div class="cflag">${open ? city.flag + ' ' + city.dish : '🔒'}</div><div class="cname">${city.name[save.settings.lang]}</div>`
+      + `<div class="cstars">★ ${cityStars(city.id)} / ${PER_CITY * 3}</div>`;
+    if (open) b.onclick = () => { click(); currentCity = city; useCity(city); renderLevels(); show('levels'); };
+    list.appendChild(b);
+  });
+  $('coins-world').textContent = String(save.coins);
 }
 
 function renderLevels() {
   const list = $('level-list');
   list.innerHTML = '';
-  LEVELS.forEach((def, i) => {
-    const unlocked = i === 0 || (save.stars[LEVELS[i - 1].id] ?? 0) > 0;
+  $('levels-city').textContent = `${currentCity.flag} ${currentCity.name[save.settings.lang]}`;
+  LEVELS.filter(l => l.city === currentCity.id).forEach(def => {
+    const unlocked = unlockedIdx(def.index);
     const stars = save.stars[def.id] ?? 0;
     const b = document.createElement('button');
     b.className = 'level-card' + (unlocked ? '' : ' locked');
-    b.innerHTML = `<div class="num">${i + 1}</div><div class="lstars">${'★'.repeat(stars)}<span>${'★'.repeat(3 - stars)}</span></div>`
+    b.innerHTML = `<div class="num">${def.n}</div><div class="lstars">${'★'.repeat(stars)}<span>${'★'.repeat(3 - stars)}</span></div>`
       + (unlocked ? '' : '<div class="lock">🔒</div>');
     if (unlocked) b.onclick = () => { click(); startLevel(def); };
     list.appendChild(b);
   });
   $('coins-total').textContent = String(save.coins);
+}
+
+function renderShop() {
+  const list = $('shop-list');
+  list.innerHTML = '';
+  for (const u of UPGRADES) {
+    const lv = upLevel(u.id);
+    const max = lv >= u.cost.length;
+    const row = document.createElement('div');
+    row.className = 'shop-row';
+    row.innerHTML = `<div class="sicon">${u.icon}</div><div class="sinfo"><b>${t(`up_${u.id}` as Key)}</b><small>${t(`upd_${u.id}` as Key)}</small>`
+      + `<div class="pips">${[0, 1, 2].map(i => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div></div>`;
+    const btn = document.createElement('button');
+    btn.className = 'btn small' + (max ? '' : save.coins >= u.cost[lv] ? ' green' : ' off');
+    btn.textContent = max ? t('max') : `🪙 ${u.cost[lv]}`;
+    if (!max) btn.onclick = () => { if (buy(u)) { coin(1.2); persist(); renderShop(); } else buzz(); };
+    row.appendChild(btn);
+    list.appendChild(row);
+  }
+  $('coins-shop').textContent = String(save.coins);
 }
 
 function startLevel(def: LevelDef) {
@@ -66,9 +126,15 @@ function startLevel(def: LevelDef) {
   money = 0;
   endTimer = 0;
   tutorial = def.id === LEVELS[0].id && !save.tutorialDone;
-  kitchen.reset(def.soda);
+  currentCity = cityOf(def.city);
+  useCity(currentCity);
+  const fx = effects();
+  kitchen.cookSpeed = fx.cookSpeed;
+  customers.fx = { patience: fx.patience, tips: fx.tips, bonus: fx.bonus };
+  kitchen.reset(def.soda, currentCity);
   customers.reset();
-  $('hud-level').textContent = `${t('level')} ${LEVELS.indexOf(def) + 1}`;
+  cat.reset(def.index >= 3);
+  $('hud-level').textContent = `${currentCity.flag} ${currentCity.name[save.settings.lang]} · ${t('level')} ${def.n}`;
   $('hud-goal').textContent = String(def.target);
   updateHud();
   mode = 'play';
@@ -165,6 +231,7 @@ kitchen.serve = item => {
   updateHud();
   return true;
 };
+cat.onSteal = () => { meow(0.7); floatText(cat.obj.position.clone().add(new THREE.Vector3(0, 0.4, 0)), '😼', 'combo'); };
 customers.onEvent = e => {
   if (e === 'arrive') ding();
   if (e === 'angry') buzz();
@@ -184,6 +251,15 @@ canvas.addEventListener('pointerdown', e => {
   ray.setFromCamera(ndc, stage.camera);
   const hit = ray.intersectObjects(stage.hits.filter(h => h.userData.hit !== 'soda' || kitchen.sodaEnabled), false)[0];
   if (!hit) return;
+  if (hit.object.userData.hit === 'cat') {
+    if (cat.shoo()) {
+      meow();
+      money += 2;
+      floatText(cat.obj.position.clone().add(new THREE.Vector3(0, 0.4, 0)), `${t('shoo')} +2`, 'combo');
+      updateHud();
+    }
+    return;
+  }
   const res = kitchen.tap(hit.object.userData.hit);
   SOUND[res]?.();
   if (res === 'wrong' || res === 'noSlot' || res === 'noBun' || res === 'raw') click();
@@ -192,9 +268,12 @@ canvas.addEventListener('pointerdown', e => {
 
 // ---------- Buttons ----------
 const on = (id: string, fn: () => void) => $(id).addEventListener('click', () => { initAudio(); click(); fn(); });
-on('btn-play', () => { renderLevels(); show('levels'); setMusic(save.settings.music); });
+on('btn-play', () => { renderWorld(); show('world'); setMusic(save.settings.music); });
+on('world-back', () => show('title'));
+on('world-shop', () => { renderShop(); show('shop'); });
+on('shop-back', () => { renderWorld(); show('world'); });
 on('btn-settings', () => { renderSettings(); show('settings'); });
-on('levels-back', () => show('title'));
+on('levels-back', () => { renderWorld(); show('world'); });
 on('btn-pause', () => { if (mode === 'play') { mode = 'paused'; setSizzle(0); show('hud', 'pause'); } });
 on('pause-resume', () => { mode = 'play'; show('hud'); });
 on('pause-quit', () => { mode = 'menu'; setSizzle(0); kitchen.reset(false); customers.reset(); hint(null); renderLevels(); show('levels'); });
@@ -202,6 +281,7 @@ on('res-retry', () => level && startLevel(level));
 on('res-next', () => { if (level) startLevel(LEVELS[LEVELS.indexOf(level) + 1]); });
 on('res-menu', () => { mode = 'menu'; kitchen.reset(false); customers.reset(); renderLevels(); show('levels'); });
 on('settings-back', () => show('title'));
+on('daily-ok', () => { coin(1.3); $('daily').classList.add('hidden'); });
 
 function renderSettings() {
   const toggles: [string, 'sound' | 'music' | 'haptics'][] = [['set-sound', 'sound'], ['set-music', 'music'], ['set-haptics', 'haptics']];
@@ -235,6 +315,7 @@ function frame() {
   if (mode === 'play' && level) {
     timeLeft -= dt;
     kitchen.update(dt);
+    cat.update(dt);
     customers.update(dt, level, timeLeft > 0, tutorial);
     setSizzle(kitchen.cookingCount);
     if (timeLeft <= 0) {
@@ -265,12 +346,21 @@ async function boot() {
   setAudioEnabled(save.settings.sound);
   show('title');
   frame();
+  const daily = claimDaily();
+  if (daily.coins) {
+    persist();
+    $('daily-coins').textContent = `+${daily.coins}`;
+    $('daily-streak').textContent = `${t('streak')}: ${daily.streak} 🔥`;
+    $('daily').classList.remove('hidden');
+  }
+  const visible = (id: string) => !$(id).classList.contains('hidden');
   nativeReady(() => {
-    if (mode === 'play') { mode = 'paused'; show('hud', 'pause'); }
-    else if (!$('levels').classList.contains('hidden') || !$('settings').classList.contains('hidden')) show('title');
+    if (mode === 'play') { mode = 'paused'; setSizzle(0); show('hud', 'pause'); }
+    else if (visible('levels') || visible('shop')) { renderWorld(); show('world'); }
+    else if (visible('world') || visible('settings')) show('title');
     else if (mode === 'menu') minimize();
   });
 }
 boot();
 
-(window as any).__game = { stage, kitchen, customers, startLevel, LEVELS, save, applyLang, get money() { return money; } };
+(window as any).__game = { stage, kitchen, customers, cat, startLevel, LEVELS, CITIES, save, applyLang, renderWorld, renderShop, show, get money() { return money; } };

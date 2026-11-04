@@ -41,11 +41,24 @@
 
   /* Levels */
   .city { font-size: 15px; font-weight: 800; color: #8a6f9e; margin: -6px 0 12px; }
-  #level-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+  #level-list { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
+  .card.wide { width: min(420px, 100%); max-height: 100%; display: flex; flex-direction: column; }
+  #city-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; overflow-y: auto; }
+  .city-card { aspect-ratio: 1.05; border-radius: 18px; background-size: cover; background-position: center; color: #fff; position: relative;
+    box-shadow: var(--shadow); display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; padding: 10px; text-align: start; }
+  .city-card.locked { filter: grayscale(.9) brightness(.7); }
+  .cflag { position: absolute; top: 8px; inset-inline-start: 10px; font-size: 22px; }
+  .cname { font-weight: 900; font-size: 18px; text-shadow: 0 2px 3px rgba(0,0,0,.6); }
+  .cstars { color: var(--yellow); font-weight: 800; font-size: 14px; }
+  .shop-row { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 16px; padding: 8px 10px; margin-bottom: 8px; text-align: start; }
+  .sicon { font-size: 30px; } .sinfo { flex: 1; } .sinfo b { display: block; font-size: 16px; } .sinfo small { color: #7a6a88; font-weight: 700; }
+  .pips { display: flex; gap: 4px; margin-top: 4px; } .pips i { width: 18px; height: 6px; border-radius: 3px; background: #e2d3c2; } .pips i.on { background: var(--green); }
+  .btn.off { background: #d8cce2; color: #8a7a98; }
+  .daily-coins { font-size: 44px; font-weight: 900; margin: 6px 0; }
   .level-card { background: var(--red); color: #fff; border-radius: 18px; aspect-ratio: 1; position: relative; box-shadow: var(--shadow);
     display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .level-card .num { font-size: 34px; font-weight: 900; }
-  .level-card .lstars { color: var(--yellow); font-size: 16px; letter-spacing: 1px; } .lstars span { color: rgba(255,255,255,.35); }
+  .level-card .num { font-size: 24px; font-weight: 900; }
+  .level-card .lstars { color: var(--yellow); font-size: 11px; letter-spacing: 0; } .lstars span { color: rgba(255,255,255,.35); }
   .level-card.locked { background: #b9a9c6; } .level-card .lock { position: absolute; font-size: 26px; }
   .coins-row { font-weight: 900; font-size: 18px; margin-bottom: 8px; }
 
@@ -125,9 +138,37 @@
   <button class="btn small blue" id="btn-settings" data-t="settings">Settings</button>
 </div>
 
+<div id="world" class="screen veil hidden">
+  <div class="card wide">
+    <h2 data-t="world">World tour</h2>
+    <div class="coins-row">🪙 <span id="coins-world">0</span></div>
+    <div id="city-list"></div>
+    <button class="btn green small" id="world-shop">🛒 <span data-t="shop">Upgrades</span></button>
+    <button class="btn small" id="world-back" data-t="back">Back</button>
+  </div>
+</div>
+
+<div id="shop" class="screen veil hidden">
+  <div class="card">
+    <h2>🛒 <span data-t="shop">Upgrades</span></h2>
+    <div class="coins-row">🪙 <span id="coins-shop">0</span></div>
+    <div id="shop-list"></div>
+    <button class="btn small" id="shop-back" data-t="back">Back</button>
+  </div>
+</div>
+
+<div id="daily" class="screen veil hidden">
+  <div class="card">
+    <h2>🎁 <span data-t="daily">Daily reward</span></h2>
+    <div class="daily-coins">🪙 <span id="daily-coins">+20</span></div>
+    <div id="daily-streak" class="city"></div>
+    <button class="btn green" id="daily-ok" data-t="claim">Collect</button>
+  </div>
+</div>
+
 <div id="levels" class="screen veil hidden">
   <div class="card">
-    <h2>🗽 <span data-t="levels">New York</span></h2>
+    <h2 id="levels-city">🗽 New York</h2>
     <div class="coins-row">🪙 <span id="coins-total">0</span></div>
     <div id="level-list"></div>
     <button class="btn small" id="levels-back" data-t="back">Back</button>

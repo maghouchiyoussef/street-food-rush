@@ -30,11 +30,17 @@ def cutout(img):
             continue
         px[x, y] = (r, g, b, 0)
         stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    # background enclosed between the legs (not reached by the flood fill)
+    for y in range(int(h * 0.6), h):
+        for x in range(w):
+            r, g, b, al = px[x, y]
+            if al and abs(r - ref[0]) + abs(g - ref[1]) + abs(b - ref[2]) < 30 and max(r, g, b) - min(r, g, b) < 12:
+                px[x, y] = (r, g, b, 0)
     # floor shadow under the shoes: light, unsaturated pixels in the bottom rows
     for y in range(int(h * 0.88), h):
         for x in range(w):
             r, g, b, al = px[x, y]
-            if al and max(r, g, b) - min(r, g, b) < 22 and min(r, g, b) > 105:
+            if al and max(r, g, b) - min(r, g, b) < 22 and min(r, g, b) > 105 and max(r, g, b) < 228:
                 px[x, y] = (r, g, b, 0)
     a = img.getchannel('A').filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.8))
     img.putalpha(a)

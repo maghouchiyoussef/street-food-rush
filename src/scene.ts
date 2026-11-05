@@ -270,8 +270,10 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
       const dist = 2.9;
       const vfov = THREE.MathUtils.radToDeg(2 * Math.atan(1.12 / (dist * aspect)));
       camera.fov = THREE.MathUtils.clamp(vfov, 45, 76);
+      // on less tall phones (16:9) look a bit higher so the order bubbles stay below the top bar
+      const k = THREE.MathUtils.clamp((aspect - 0.46) / 0.1, 0, 1);
       camera.position.set(0, 3.2, 2.95);
-      camera.lookAt(0, 0.95, 0.82);
+      camera.lookAt(0, 0.95 + 0.3 * k, 0.82 - 0.25 * k);
       camera.updateProjectionMatrix();
     },
   };

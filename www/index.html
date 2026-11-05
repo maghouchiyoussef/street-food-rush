@@ -30,13 +30,13 @@
   /* Title */
   #title { justify-content: flex-end; padding-bottom: max(56px, env(safe-area-inset-bottom)); }
   .logo { position: absolute; top: max(40px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center; }
-  .logo h1 { margin: 0; font-size: clamp(44px, 14vw, 66px); line-height: .92; font-weight: 900; color: #fff; letter-spacing: 1px;
+  .logo h1 { margin: 0; font-size: clamp(36px, min(14vw, 8vh), 66px); line-height: .92; font-weight: 900; color: #fff; letter-spacing: 1px;
     text-shadow: 0 4px 0 var(--red), 0 8px 0 var(--ink), 0 12px 18px rgba(0,0,0,.35); transform: rotate(-4deg); }
   .logo h1 span { color: var(--yellow); }
   .logo p { color: #fff; font-weight: 800; margin: 18px 0 0; text-shadow: 0 2px 4px rgba(0,0,0,.5); font-size: 17px; }
 
   #title { background: linear-gradient(180deg, rgba(43,24,64,.15) 0%, rgba(43,24,64,0) 35%, rgba(43,24,64,.55) 100%); }
-  .chef { width: min(62vw, 300px); margin-bottom: 4px; filter: drop-shadow(0 10px 12px rgba(0,0,0,.35)); animation: chefbob 2.4s ease-in-out infinite; }
+  .chef { width: min(62vw, 300px, 26vh); margin-bottom: 4px; filter: drop-shadow(0 10px 12px rgba(0,0,0,.35)); animation: chefbob 2.4s ease-in-out infinite; }
   @keyframes chefbob { 50% { transform: translateY(-8px) rotate(1.5deg); } }
 
   /* Levels */
